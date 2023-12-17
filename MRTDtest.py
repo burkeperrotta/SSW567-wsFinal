@@ -1,6 +1,6 @@
 import unittest
 from unittest.mock import patch
-from MRTD.py import MRTDSystem 
+from MRTD import MRTDSystem 
 
 
 class TestMRTDSystem(unittest.TestCase):
