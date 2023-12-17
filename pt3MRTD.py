@@ -1,5 +1,6 @@
 import json
 import time
+import csv
 
 class MRTDSystem:
     @staticmethod
@@ -34,13 +35,13 @@ class MRTDSystem:
         calcCd4 = mrz_system.check_digit(cdInfo4)
 
         if calcCd1 != cd1:
-            print(f"The Passport Number field on record {i} is not correct.")
+            print(f"The Passport Number field on record {i+1} is not correct.")
         if calcCd2 != cd2:
-            print(f"The Birth Date field on record {i} is not correct.")
+            print(f"The Birth Date field on record {i+1} is not correct.")
         if calcCd3 != cd3:
-            print(f"The Expiration Date field on record {i} is not correct.")
+            print(f"The Expiration Date field on record {i+1} is not correct.")
         if calcCd4 != cd4:
-            print(f"The Personal Number field on record {i} is not correct.")
+            print(f"The Personal Number field on record {i+1} is not correct.")
 
         return decoded_info
     
@@ -58,9 +59,8 @@ class MRTDSystem:
 
     
     @staticmethod
-    def decode_mrz():
-        n=5 # change this number for number of records to run and time
-        start_time = time.time()
+    def decode_mrz(num_lines):
+        n = num_lines
         mrz_system = MRTDSystem()
         decoded_records = []
 
@@ -72,12 +72,103 @@ class MRTDSystem:
             decoded_info = mrz_system.decode_mrz_line(line1, line2, i)
             decoded_records.append(decoded_info)
 
-        end_time = time.time()
-        run_time = end_time - start_time
-        print(f"Decoding {n} lines took {run_time:.4f} seconds")
         return decoded_records
     
+    @staticmethod
+    def encode_mrz_line(line1_data, line2_data):
+        cd1 = MRTDSystem.check_digit(line2_data["passport_number"])
+        cd2 = MRTDSystem.check_digit(line2_data["birth_date"])
+        cd3 = MRTDSystem.check_digit(line2_data["expiration_date"])
+        cd4 = MRTDSystem.check_digit(line2_data["personal_number"])
+
+        full_name = line1_data["given_name"]
+        names = full_name.split(" ")
+        if len(names) >= 2:
+            first_name = names[0]
+            middle_name = " ".join(names[1:])
+        else:
+            first_name = full_name
+            middle_name = ""
+
+        if len(names) >= 2:
+            first_name = names[0]
+            middle_name = " ".join(names[1:])
+
+        line1_empty_chars = 44 - len(f"P<{line1_data['issuing_country']}{line1_data['last_name']}<<{line1_data['given_name']}")
+        encoded1 = f"P<{line1_data['issuing_country']}{line1_data['last_name']}<<{first_name}<{middle_name}{'<' * line1_empty_chars}"
+        encoded2 = f"{line2_data['passport_number']}{cd1}{line2_data['country_code']}{line2_data['birth_date']}{cd2}{line2_data['sex']}{line2_data['expiration_date']}{cd3}{line2_data['personal_number']}<<<<<<{cd4}"
+
+        return encoded1, encoded2
+
+        
+
+    @staticmethod
+    def encode_mrz(num_lines):
+        n = num_lines
+        mrz_system = MRTDSystem()
+        encoded_records = []
+        with open("records_decoded.json", 'r') as file:
+            data = json.load(file)
+        records_decoded = data.get("records_decoded", [])
+        for i, record in enumerate(records_decoded[:n]):
+            line1_data = {
+            "issuing_country": record["line1"]["issuing_country"],
+            "last_name": record["line1"]["last_name"],
+            "given_name": record["line1"]["given_name"],
+            }
+
+            line2_data = {
+            "passport_number": record["line2"]["passport_number"],
+            "country_code": record["line2"]["country_code"],
+            "birth_date": record["line2"]["birth_date"],
+            "sex": record["line2"]["sex"],
+            "expiration_date": record["line2"]["expiration_date"],
+            "personal_number": record["line2"]["personal_number"],
+            }
+            encoded1, encoded2 = mrz_system.encode_mrz_line(line1_data, line2_data)
+            encoded_info = {f"record{i+1}_line1": encoded1,
+                            f"record{i+1}_line2": encoded2}
+            encoded_records.append(encoded_info)
+
+        return encoded_records
+
+    @staticmethod
+    def runtimes():
+        lines = [100,1000,2000,3000,4000,5000,6000,7000,8000,9000,10000]
+        with open("decode_runtimes.csv", mode="w", newline="") as csvfile:
+            fieldnames = ["Lines Decoded", "Runtime"]
+            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+            writer.writeheader()
+
+            for number in lines:
+                start_time = time.time()
+                MRTDSystem.decode_mrz(number)
+                runtime = time.time() - start_time
+
+                # Write the results to the CSV file
+                writer.writerow({
+                    "Lines Decoded": number,
+                    "Runtime": runtime
+                })
+
+        with open("encode_runtimes.csv", mode="w", newline="") as csvfile:
+            fieldnames = ["Lines Encoded", "Runtime"]
+            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+            writer.writeheader()
+
+            for number in lines:
+                start_time = time.time()
+                MRTDSystem.encode_mrz(number)
+                runtime = time.time() - start_time
+
+                # Write the results to the CSV file
+                writer.writerow({
+                    "Lines Encoded": number,
+                    "Runtime": runtime
+                })
+
+
 
 if __name__ == "__main__":
-    # Call the decode_mrz function with the desired number of lines
-    decoded_records = MRTDSystem.decode_mrz()
+
+    MRTDSystem.runtimes()
