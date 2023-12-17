@@ -19,4 +19,4 @@ Coverage result for successful unit tests:
 ### mutation test result: 
 Mutation test failed. No report was generated. 
 
-[Mutation Test Failed](mutpy_failed.png?raw=true "Mutation Test Final Result")
+![Mutation Test Failed](mutpy_failed.png?raw=true "Mutation Test Final Result")
