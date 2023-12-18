@@ -6,6 +6,8 @@ class MRTDSystem:
     @staticmethod
     def scan_mrz(line):
         # Modified function to split each line at the semicolon and return two strings
+        if ";" not in line:
+            return line, ""
         line1, line2 = line.strip().split(';')
         return line1, line2
 
@@ -14,9 +16,9 @@ class MRTDSystem:
         mrz_system = MRTDSystem()
         # Modified function to use scan_mrz and populate the dictionary as specified
         decoded_info = {"Doc Type": line1[0], "Issuing Country": line1[2:5],
-                        "Last": line1[5:line1.find("<<")].replace("<", " "),
-                        "First": line1[line1.find("<<")+2:line1.find("<", line1.find("<<")+2)].replace("<", " "),
-                        "Middle": line1[line1.find("<", line1.find("<<")+2)+1:].replace("<", ""), 
+                        "Last": line1[5:line1.find("<<")].replace('<', ''),
+                        "First": line1[line1.find('<<')+2:line1.find('<', line1.find("<<")+2)].replace('<', ''),
+                        "Middle": line1[line1.find('<', line1.find("<<")+2)+1:].replace('<', ''), 
                         "Passport Number": line2[:9], "Country Code":line2[10:13], 
                         "Birth Date":line2[13:19], "Sex": line2[20], "Expiration Date":line2[21:27],
                         "Personal Number": line2[28:37]}
